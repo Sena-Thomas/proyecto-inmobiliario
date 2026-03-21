@@ -1,6 +1,6 @@
 from typing import Optional
 from pydantic import BaseModel, EmailStr
-from models import UserRole, PropertyStatus
+from models import UserRole, PropertyStatus, TipoTransaccion
 
 
 # ── User schemas ─────────────────────────────────────────────────────────────
@@ -14,7 +14,7 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    password: str
+    password: Optional[str] = None
 
 
 class UserOut(UserBase):
@@ -24,15 +24,35 @@ class UserOut(UserBase):
         from_attributes = True
 
 
+# ── Auth schemas ──────────────────────────────────────────────────────────────
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class GoogleLoginRequest(BaseModel):
+    token: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserOut
+
+
 # ── Property schemas ──────────────────────────────────────────────────────────
 
 class PropertyBase(BaseModel):
     titulo: str
     descripcion: Optional[str] = None
     precio: float
+    tamaño_m2: Optional[float] = None
+    direccion: Optional[str] = None
     latitud: Optional[float] = None
     longitud: Optional[float] = None
     url_imagen: Optional[str] = None
+    tipo_transaccion: TipoTransaccion = TipoTransaccion.venta
     estado: PropertyStatus = PropertyStatus.disponible
 
 
@@ -44,9 +64,12 @@ class PropertyUpdate(BaseModel):
     titulo: Optional[str] = None
     descripcion: Optional[str] = None
     precio: Optional[float] = None
+    tamaño_m2: Optional[float] = None
+    direccion: Optional[str] = None
     latitud: Optional[float] = None
     longitud: Optional[float] = None
     url_imagen: Optional[str] = None
+    tipo_transaccion: Optional[TipoTransaccion] = None
     estado: Optional[PropertyStatus] = None
 
 

@@ -6,17 +6,30 @@ from sqlalchemy.orm import relationship
 from database import Base
 
 
+# Emails that are always granted the admin role
+ADMIN_EMAILS = {
+    "thomasfernandoroan@gmail.com",
+    "serviasi@hotmail.com",
+    "thomas_frodrigueza@soy.sena.edu.co",
+    "throdrigueza@unal.edu.co",
+}
+
+
 class UserRole(str, enum.Enum):
     admin = "admin"
-    comercial = "comercial"
     cliente = "cliente"
+
+
+class TipoTransaccion(str, enum.Enum):
+    venta = "venta"
+    arriendo = "arriendo"
 
 
 class PropertyStatus(str, enum.Enum):
     disponible = "disponible"
     arrendado = "arrendado"
     vendido = "vendido"
-    cita_programada = "cita_programada"
+    reservado = "reservado"
 
 
 class User(Base):
@@ -25,7 +38,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String(100), nullable=False)
     email = Column(String(150), unique=True, index=True, nullable=False)
-    password_hash = Column(String(255), nullable=False)
+    password_hash = Column(String(255), nullable=True)
     telefono = Column(String(30), nullable=True)
     facebook_link = Column(String(255), nullable=True)
     rol = Column(Enum(UserRole), default=UserRole.cliente, nullable=False)
@@ -40,9 +53,16 @@ class Property(Base):
     titulo = Column(String(200), nullable=False)
     descripcion = Column(Text, nullable=True)
     precio = Column(Float, nullable=False)
+    tamaño_m2 = Column(Float, nullable=True)
+    direccion = Column(String(300), nullable=True)
     latitud = Column(Float, nullable=True)
     longitud = Column(Float, nullable=True)
     url_imagen = Column(String(500), nullable=True)
+    tipo_transaccion = Column(
+        Enum(TipoTransaccion),
+        default=TipoTransaccion.venta,
+        nullable=False,
+    )
     estado = Column(
         Enum(PropertyStatus),
         default=PropertyStatus.disponible,
