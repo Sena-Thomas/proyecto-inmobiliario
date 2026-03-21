@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Search, SlidersHorizontal, MessageCircle, Instagram, Facebook } from 'lucide-react'
+import { Search, SlidersHorizontal, MessageCircle, Instagram, Facebook, TrendingUp, Shield, Star } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import Navbar from '../components/Navbar'
 import PropertyCard from '../components/PropertyCard'
+import ParticlesBackground from '../components/ParticlesBackground'
 import { getProperties } from '../api'
+
+// Named motion components (makes ESLint happy with member-expression usage)
+const MotionDiv = motion.div
+const MotionH1 = motion.h1
+const MotionP = motion.p
 
 const MONICA_PHONE = import.meta.env.VITE_MONICA_PHONE || '573001234567'
 const MONICA_WHATSAPP = `https://wa.me/${MONICA_PHONE}?text=${encodeURIComponent('Hola Mónica, estoy interesado/a en tus propiedades. ¿Me puedes dar más información?')}`
@@ -22,6 +29,27 @@ const STATUSES = [
   { value: 'vendido', label: 'Vendido' },
   { value: 'arrendado', label: 'Arrendado' },
 ]
+
+const STATS = [
+  { icon: TrendingUp, value: '100%', label: 'Compromiso con el cliente' },
+  { icon: Shield,     value: 'Seguro', label: 'Asesoría de confianza' },
+  { icon: Star,       value: '5★',    label: 'Experiencia de calidad' },
+]
+
+function SkeletonCard() {
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ background: '#0d2137', border: '1px solid rgba(0,120,212,0.1)' }}>
+      <div className="h-52 shimmer" />
+      <div className="p-5 flex flex-col gap-3">
+        <div className="h-5 shimmer rounded-lg w-3/4" />
+        <div className="h-4 shimmer rounded-lg w-1/2" />
+        <div className="h-3 shimmer rounded-lg w-full" />
+        <div className="h-3 shimmer rounded-lg w-5/6" />
+        <div className="h-10 shimmer rounded-xl mt-auto" />
+      </div>
+    </div>
+  )
+}
 
 export default function Home() {
   const [properties, setProperties] = useState([])
@@ -49,42 +77,90 @@ export default function Home() {
   })
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
       <Navbar />
 
-      {/* Hero */}
-      <header className="relative bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 py-20 text-center overflow-hidden">
-        <div className="absolute inset-0 opacity-10 bg-[url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1600')] bg-cover bg-center" />
-        <div className="relative max-w-3xl mx-auto px-4">
-          <p className="text-emerald-400 text-sm font-semibold uppercase tracking-widest mb-3">
+      {/* ── Hero ────────────────────────────────────────────────────────────── */}
+      <header className="relative overflow-hidden" style={{ minHeight: '92vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        {/* Particles */}
+        <ParticlesBackground />
+
+        {/* Background layers */}
+        <div className="absolute inset-0 z-0">
+          <div
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage: `url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1600&q=80')`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+          />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #020c1b 0%, #001a38 40%, #020c1b 100%)' }} />
+          {/* Radial glow */}
+          <div className="absolute inset-0 opacity-30" style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 40%, rgba(0,120,212,0.35) 0%, transparent 70%)' }} />
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 max-w-4xl mx-auto px-4 text-center py-20">
+          {/* Badge */}
+          <MotionDiv
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-widest uppercase mb-6"
+            style={{ background: 'rgba(0,120,212,0.15)', border: '1px solid rgba(0,120,212,0.35)', color: '#56a4ea' }}
+          >
+            <span className="w-2 h-2 rounded-full bg-[#0078d4] animate-pulse" />
             Asesora Inmobiliaria · Mónica Anzola
-          </p>
-          <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
-            Encuentra tu hogar <span className="text-emerald-400">ideal</span>
-          </h1>
-          <p className="text-slate-300 text-lg mb-8">
+          </MotionDiv>
+
+          {/* Headline */}
+          <MotionH1
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.1 }}
+            className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-white mb-5 leading-tight"
+          >
+            Tu próximo hogar<br />
+            <span style={{ background: 'linear-gradient(135deg, #56a4ea, #0078d4, #004880)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+              te está esperando
+            </span>
+          </MotionH1>
+
+          {/* Subtitle */}
+          <MotionP
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="text-lg text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed"
+          >
             Casas, apartamentos y locales para venta y arriendo.
-            Te acompañamos en cada paso de tu proceso inmobiliario.
-          </p>
+            Te acompañamos en cada paso de tu proceso inmobiliario con total transparencia.
+          </MotionP>
 
           {/* Search & filters */}
-          <div className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto">
+          <MotionDiv
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto mb-10"
+          >
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#0078d4]" size={17} />
               <input
                 type="text"
                 placeholder="Buscar por título, dirección o descripción…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-800 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500"
+                className="input-dark w-full pl-10 pr-4 py-3.5 text-sm"
               />
             </div>
             <div className="relative">
-              <SlidersHorizontal className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <SlidersHorizontal className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#0078d4]" size={16} />
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="pl-10 pr-4 py-3 rounded-xl bg-slate-800 border border-slate-600 text-white focus:outline-none focus:border-emerald-500 appearance-none cursor-pointer"
+                className="input-dark pl-10 pr-4 py-3.5 appearance-none cursor-pointer"
               >
                 {TRANSACTION_TYPES.map((t) => (
                   <option key={t.value} value={t.value}>{t.label}</option>
@@ -94,21 +170,26 @@ export default function Home() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="py-3 px-4 rounded-xl bg-slate-800 border border-slate-600 text-white focus:outline-none focus:border-emerald-500 appearance-none cursor-pointer"
+              className="input-dark py-3.5 px-4 appearance-none cursor-pointer"
             >
               {STATUSES.map((s) => (
                 <option key={s.value} value={s.value}>{s.label}</option>
               ))}
             </select>
-          </div>
+          </MotionDiv>
 
           {/* Social links */}
-          <div className="flex items-center justify-center gap-4 mt-8">
+          <MotionDiv
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="flex items-center justify-center gap-3 flex-wrap"
+          >
             <a
               href={MONICA_WHATSAPP}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors"
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-green-500/30 hover:scale-105 active:scale-95"
             >
               <MessageCircle size={16} /> WhatsApp
             </a>
@@ -116,7 +197,8 @@ export default function Home() {
               href={FACEBOOK_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 bg-blue-700 hover:bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors"
+              className="flex items-center gap-2 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-all hover:scale-105 active:scale-95"
+              style={{ background: 'rgba(59,89,152,0.8)', border: '1px solid rgba(59,89,152,0.5)' }}
             >
               <Facebook size={16} /> Facebook
             </a>
@@ -124,61 +206,135 @@ export default function Home() {
               href={INSTAGRAM_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 bg-pink-600 hover:bg-pink-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors"
+              className="flex items-center gap-2 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-all hover:scale-105 active:scale-95"
+              style={{ background: 'rgba(193,53,132,0.7)', border: '1px solid rgba(193,53,132,0.4)' }}
             >
               <Instagram size={16} /> Instagram
             </a>
+          </MotionDiv>
+        </div>
+
+        {/* Stats strip */}
+        <MotionDiv
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.5 }}
+          className="relative z-10 max-w-3xl mx-auto w-full px-4 pb-10"
+        >
+          <div className="grid grid-cols-3 gap-4">
+            {STATS.map((stat) => {
+              const StatIcon = stat.icon
+              return (
+                <div
+                  key={stat.label}
+                  className="text-center py-4 px-3 rounded-2xl"
+                  style={{ background: 'rgba(13,33,55,0.7)', border: '1px solid rgba(0,120,212,0.2)', backdropFilter: 'blur(12px)' }}
+                >
+                  <StatIcon size={20} className="text-[#0078d4] mx-auto mb-1" />
+                  <p className="text-white font-bold text-lg leading-none">{stat.value}</p>
+                  <p className="text-slate-400 text-xs mt-0.5">{stat.label}</p>
+                </div>
+              )
+            })}
           </div>
+        </MotionDiv>
+
+        {/* Bottom wave divider */}
+        <div className="absolute bottom-0 left-0 right-0 z-10">
+          <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full" preserveAspectRatio="none">
+            <path d="M0 60L480 20L960 50L1440 10V60H0Z" fill="#020c1b" />
+          </svg>
         </div>
       </header>
 
-      {/* Grid */}
-      <main className="max-w-7xl mx-auto px-4 py-12">
+      {/* ── Catalog section ─────────────────────────────────────────────────── */}
+      <main className="max-w-7xl mx-auto px-4 py-16">
+        {/* Section header */}
+        <MotionDiv
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="mb-10"
+        >
+          <h2 className="text-2xl font-bold text-white mb-1">
+            Propiedades <span style={{ background: 'linear-gradient(135deg, #56a4ea, #0078d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>disponibles</span>
+          </h2>
+          <p className="text-slate-400 text-sm">Selecciona la que más se adapte a ti y comunícate directamente con Mónica.</p>
+        </MotionDiv>
+
+        {/* Loading skeletons */}
         {loading && (
-          <p className="text-center text-slate-400 py-20 text-lg animate-pulse">
-            Cargando propiedades…
-          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+          </div>
         )}
 
+        {/* Error */}
         {error && (
-          <p className="text-center text-red-400 py-20 text-lg">{error}</p>
+          <MotionDiv
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-20"
+          >
+            <p className="text-red-400 text-lg">{error}</p>
+          </MotionDiv>
         )}
 
+        {/* Empty state */}
         {!loading && !error && filtered.length === 0 && (
-          <p className="text-center text-slate-500 py-20 text-lg">
-            No se encontraron propiedades con esos filtros.
-          </p>
+          <MotionDiv
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-24"
+          >
+            <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style={{ background: 'rgba(0,120,212,0.1)', border: '1px solid rgba(0,120,212,0.2)' }}>
+              <Search size={28} className="text-[#0078d4]" />
+            </div>
+            <p className="text-slate-300 font-medium">No se encontraron propiedades con esos filtros.</p>
+            <p className="text-slate-500 text-sm mt-1">Intenta ajustar los criterios de búsqueda.</p>
+          </MotionDiv>
         )}
 
+        {/* Property grid */}
         {!loading && !error && filtered.length > 0 && (
           <>
-            <p className="text-slate-400 text-sm mb-6">
+            <p className="text-slate-500 text-xs mb-6">
               {filtered.length} propiedad{filtered.length !== 1 ? 'es' : ''} encontrada{filtered.length !== 1 ? 's' : ''}
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filtered.map((p) => (
-                <PropertyCard key={p.id} property={p} />
-              ))}
-            </div>
+            <AnimatePresence>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filtered.map((p, i) => (
+                  <PropertyCard key={p.id} property={p} index={i} />
+                ))}
+              </div>
+            </AnimatePresence>
           </>
         )}
       </main>
 
-      {/* Floating WhatsApp button */}
+      {/* ── Floating WhatsApp ────────────────────────────────────────────────── */}
       <a
         href={MONICA_WHATSAPP}
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-green-500 hover:bg-green-400 text-white font-semibold px-4 py-3 rounded-full shadow-lg shadow-green-500/30 transition-all hover:scale-105"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-green-500 hover:bg-green-400 text-white font-semibold px-4 py-3 rounded-full shadow-2xl shadow-green-500/40 transition-all hover:scale-110 active:scale-95 whatsapp-pulse"
         title="Contactar a Mónica por WhatsApp"
+        style={{ position: 'fixed' }}
       >
         <MessageCircle size={22} />
         <span className="hidden sm:block">Contactar</span>
       </a>
 
-      <footer className="text-center py-8 text-slate-600 text-sm border-t border-slate-800">
-        © {new Date().getFullYear()} Inmobiliaria Mónica Anzola · Asesora Inmobiliaria
+      {/* ── Footer ──────────────────────────────────────────────────────────── */}
+      <footer
+        className="text-center py-8 text-sm"
+        style={{ background: 'rgba(2,12,27,0.9)', borderTop: '1px solid rgba(0,120,212,0.15)', color: '#4a6480' }}
+      >
+        © {new Date().getFullYear()} Inmobiliaria Mónica Anzola ·{' '}
+        <span style={{ color: '#0078d4' }}>Asesora Inmobiliaria</span>
       </footer>
     </div>
   )
 }
+

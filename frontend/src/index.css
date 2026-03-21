@@ -2,37 +2,127 @@
 
 @import "leaflet/dist/leaflet.css";
 
+/* ── Custom properties (Azure-blue palette) ─────────────────────────────── */
+:root {
+  --azure-50:  #e8f4fd;
+  --azure-100: #c3dff8;
+  --azure-200: #90c3f2;
+  --azure-300: #56a4ea;
+  --azure-400: #2b8be0;
+  --azure-500: #0078d4;  /* Azure brand blue */
+  --azure-600: #005fa3;
+  --azure-700: #004880;
+  --azure-800: #00305c;
+  --azure-900: #001a38;
+
+  --bg-primary:   #020c1b;
+  --bg-secondary: #091526;
+  --bg-card:      #0d2137;
+  --bg-card-hover:#0e2845;
+}
+
 body {
   margin: 0;
   font-family: system-ui, -apple-system, sans-serif;
-  background-color: #0f172a;
-  color: #f1f5f9;
+  background-color: var(--bg-primary);
+  color: #e2eaf4;
+  scroll-behavior: smooth;
 }
 
 * {
   box-sizing: border-box;
 }
 
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--azure-700); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--azure-500); }
+
+/* ── Glass card effect ───────────────────────────────────────────────────── */
+.glass {
+  background: rgba(13, 33, 55, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 120, 212, 0.2);
+}
+
+/* ── Input styles ────────────────────────────────────────────────────────── */
 .input-dark {
   width: 100%;
   padding: 0.625rem 0.875rem;
   border-radius: 0.75rem;
-  background-color: #1e293b;
-  border: 1px solid #334155;
-  color: #f1f5f9;
+  background-color: rgba(9, 21, 38, 0.8);
+  border: 1px solid rgba(0, 120, 212, 0.3);
+  color: #e2eaf4;
   font-size: 0.875rem;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
-
 .input-dark:focus {
-  border-color: #38bdf8;
+  border-color: var(--azure-500);
+  box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.2);
+}
+.input-dark::placeholder { color: #4a6480; }
+.input-dark option { background-color: var(--bg-secondary); }
+
+/* ── Gradient text ───────────────────────────────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, #56a4ea 0%, #0078d4 50%, #005fa3 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.input-dark::placeholder {
-  color: #64748b;
+/* ── Shimmer loading animation ───────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+.shimmer {
+  background: linear-gradient(90deg, #0d2137 25%, #0e3052 50%, #0d2137 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
 
-.input-dark option {
-  background-color: #1e293b;
+/* ── Floating WhatsApp pulse ─────────────────────────────────────────────── */
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 0.8; }
+  70%  { transform: scale(1.3); opacity: 0;   }
+  100% { transform: scale(1.3); opacity: 0;   }
 }
+.whatsapp-pulse::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: #16a34a;
+  animation: pulse-ring 2s ease-out infinite;
+  z-index: -1;
+}
+
+/* ── Particles container ─────────────────────────────────────────────────── */
+#tsparticles {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+/* ── Card hover glow ─────────────────────────────────────────────────────── */
+.card-glow {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card-glow:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 60px rgba(0, 120, 212, 0.25), 0 0 0 1px rgba(0, 120, 212, 0.3);
+}
+
+/* ── Price badge gradient ────────────────────────────────────────────────── */
+.price-badge {
+  background: linear-gradient(135deg, var(--azure-500), var(--azure-700));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800;
+}
+
