@@ -44,7 +44,11 @@ export default function Login() {
       setError('El inicio de sesión con Google no está configurado aún.')
       return
     }
-    window.google?.accounts.id.initialize({
+    if (!window.google?.accounts?.id) {
+      setError('El servicio de Google no está disponible. Recarga la página e inténtalo de nuevo.')
+      return
+    }
+    window.google.accounts.id.initialize({
       client_id: clientId,
       callback: async ({ credential }) => {
         try {
@@ -58,7 +62,7 @@ export default function Login() {
         }
       },
     })
-    window.google?.accounts.id.prompt()
+    window.google.accounts.id.prompt()
   }
 
   return (
