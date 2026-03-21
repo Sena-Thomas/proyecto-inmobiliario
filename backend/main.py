@@ -1,31 +1,181 @@
-from fastapi import FastAPI, Depends, HTTPException
+import os
+import logging
+from datetime import datetime, timedelta, timezone
+from typing import List, Optional
+
+from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
-from typing import List
 
 import models
 import schemas
 from database import engine, get_db
+from models import ADMIN_EMAILS
+
+logger = logging.getLogger(__name__)
 
 # Create all tables on startup
 models.Base.metadata.create_all(bind=engine)
 
+# ── JWT config ────────────────────────────────────────────────────────────────
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    logger.warning(
+        "JWT_SECRET_KEY is not set. Using an insecure default key — "
+        "set this environment variable before deploying to production."
+    )
+    SECRET_KEY = "dev-only-insecure-default-key-change-before-production"
+
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 app = FastAPI(
-    title="Inmobiliaria Alicante API",
-    description="API REST para la plataforma inmobiliaria en Alicante, España.",
-    version="1.0.0",
+    title="Inmobiliaria Mónica Anzola API",
+    description="API REST para la plataforma inmobiliaria de Mónica Anzola.",
+    version="2.0.0",
 )
+
+ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://nice-desert-0564dc70f.1.azurestaticapps.net",
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ── Auth helpers ──────────────────────────────────────────────────────────────
+
+def _role_for_email(email: str) -> models.UserRole:
+    """Return admin role if the email is in the whitelist, else cliente."""
+    return models.UserRole.admin if email.lower() in ADMIN_EMAILS else models.UserRole.cliente
+
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + (
+        expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def get_current_user(
+    token: Optional[str] = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+) -> Optional[models.User]:
+    """Decode the Bearer token and return the User, or None if unauthenticated."""
+    if token is None:
+        return None
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if not email:
+            return None
+    except JWTError:
+        return None
+    return db.query(models.User).filter(models.User.email == email).first()
+
+
+def require_admin(current_user: Optional[models.User] = Depends(get_current_user)):
+    """Dependency that raises 403 unless the token belongs to an admin."""
+    if current_user is None or current_user.rol != models.UserRole.admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso denegado. Solo administradores pueden realizar esta acción.",
+        )
+    return current_user
+
+
+# ── Auth endpoints ────────────────────────────────────────────────────────────
+
+@app.post("/auth/login", response_model=schemas.TokenResponse)
+def login(payload: schemas.LoginRequest, db: Session = Depends(get_db)):
+    """Authenticate with email + password and return a JWT."""
+    user = db.query(models.User).filter(
+        models.User.email == payload.email.lower()
+    ).first()
+
+    if not user or not user.password_hash:
+        raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+    if not pwd_context.verify(payload.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+
+    # Sync role in case the whitelist has changed
+    expected_role = _role_for_email(user.email)
+    if user.rol != expected_role:
+        user.rol = expected_role
+        db.commit()
+        db.refresh(user)
+
+    token = create_access_token({"sub": user.email})
+    return schemas.TokenResponse(access_token=token, user=user)
+
+
+@app.post("/auth/google", response_model=schemas.TokenResponse)
+def google_login(payload: schemas.GoogleLoginRequest, db: Session = Depends(get_db)):
+    """Verify a Google ID token and return a JWT for this platform."""
+    GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Google login no está configurado en este servidor.",
+        )
+    try:
+        from google.oauth2 import id_token as google_id_token
+        from google.auth.transport import requests as google_requests
+
+        id_info = google_id_token.verify_oauth2_token(
+            payload.token,
+            google_requests.Request(),
+            GOOGLE_CLIENT_ID,
+        )
+        email = id_info["email"].lower()
+        nombre = id_info.get("name", email.split("@")[0])
+    except Exception:
+        raise HTTPException(status_code=401, detail="Token de Google inválido")
+
+    # Get or create the user
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user:
+        user = models.User(
+            nombre=nombre,
+            email=email,
+            password_hash=None,
+            rol=_role_for_email(email),
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    else:
+        expected_role = _role_for_email(email)
+        if user.rol != expected_role:
+            user.rol = expected_role
+            db.commit()
+            db.refresh(user)
+
+    token = create_access_token({"sub": user.email})
+    return schemas.TokenResponse(access_token=token, user=user)
+
+
+@app.get("/auth/me", response_model=schemas.UserOut)
+def me(current_user: Optional[models.User] = Depends(get_current_user)):
+    """Return the current authenticated user, or 401."""
+    if current_user is None:
+        raise HTTPException(status_code=401, detail="No autenticado")
+    return current_user
 
 
 # ── Properties ────────────────────────────────────────────────────────────────
@@ -36,7 +186,7 @@ def list_properties(
     limit: int = 100,
     db: Session = Depends(get_db),
 ):
-    """Return all available properties (public catalog)."""
+    """Return all properties (public catalog)."""
     return (
         db.query(models.Property)
         .offset(skip)
@@ -60,8 +210,9 @@ def get_property(property_id: int, db: Session = Depends(get_db)):
 def create_property(
     payload: schemas.PropertyCreate,
     db: Session = Depends(get_db),
+    _admin: models.User = Depends(require_admin),
 ):
-    """Create a new property listing (admin / comercial)."""
+    """Create a new property listing (admin only)."""
     owner = db.query(models.User).filter(
         models.User.id == payload.owner_id
     ).first()
@@ -79,8 +230,9 @@ def update_property(
     property_id: int,
     payload: schemas.PropertyUpdate,
     db: Session = Depends(get_db),
+    _admin: models.User = Depends(require_admin),
 ):
-    """Update a property (change status, details, etc.)."""
+    """Update a property (admin only)."""
     prop = db.query(models.Property).filter(
         models.Property.id == property_id
     ).first()
@@ -94,7 +246,11 @@ def update_property(
 
 
 @app.delete("/properties/{property_id}", status_code=204)
-def delete_property(property_id: int, db: Session = Depends(get_db)):
+def delete_property(
+    property_id: int,
+    db: Session = Depends(get_db),
+    _admin: models.User = Depends(require_admin),
+):
     """Delete a property listing (admin only)."""
     prop = db.query(models.Property).filter(
         models.Property.id == property_id
@@ -108,12 +264,21 @@ def delete_property(property_id: int, db: Session = Depends(get_db)):
 # ── Users ─────────────────────────────────────────────────────────────────────
 
 @app.get("/users", response_model=List[schemas.UserOut])
-def list_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def list_users(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    _admin: models.User = Depends(require_admin),
+):
     return db.query(models.User).offset(skip).limit(limit).all()
 
 
 @app.get("/users/{user_id}", response_model=schemas.UserOut)
-def get_user(user_id: int, db: Session = Depends(get_db)):
+def get_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    _admin: models.User = Depends(require_admin),
+):
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -123,13 +288,23 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
 @app.post("/users", response_model=schemas.UserOut, status_code=201)
 def create_user(payload: schemas.UserCreate, db: Session = Depends(get_db)):
     existing = db.query(models.User).filter(
-        models.User.email == payload.email
+        models.User.email == payload.email.lower()
     ).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email ya registrado")
-    hashed = pwd_context.hash(payload.password)
-    user_data = payload.model_dump(exclude={"password"})
-    user_data["password_hash"] = hashed
+
+    # Determine role from the admin email whitelist
+    role = _role_for_email(payload.email)
+
+    user_data = payload.model_dump(exclude={"password", "rol"})
+    user_data["email"] = user_data["email"].lower()
+    user_data["rol"] = role
+
+    if payload.password:
+        user_data["password_hash"] = pwd_context.hash(payload.password)
+    else:
+        user_data["password_hash"] = None
+
     user = models.User(**user_data)
     db.add(user)
     db.commit()

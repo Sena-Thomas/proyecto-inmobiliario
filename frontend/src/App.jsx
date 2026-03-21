@@ -1,8 +1,16 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useAuth } from './contexts/AuthContext'
 import Home from './pages/Home'
 import AdminDashboard from './pages/AdminDashboard'
-import ComercialDashboard from './pages/ComercialDashboard'
 import Login from './pages/Login'
+
+function ProtectedAdminRoute({ children }) {
+  const { user, loading, isAdmin } = useAuth()
+  if (loading) return null
+  if (!user) return <Navigate to="/login" replace />
+  if (!isAdmin) return <Navigate to="/" replace />
+  return children
+}
 
 function App() {
   return (
@@ -10,8 +18,14 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/comercial" element={<ComercialDashboard />} />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedAdminRoute>
+              <AdminDashboard />
+            </ProtectedAdminRoute>
+          }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
