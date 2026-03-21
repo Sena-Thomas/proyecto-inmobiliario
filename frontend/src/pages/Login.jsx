@@ -1,8 +1,13 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Building2, Mail, Lock, LogIn, Chrome } from 'lucide-react'
+import { Building2, Mail, Lock, LogIn, Chrome, ArrowLeft } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { useAuth } from '../contexts/AuthContext'
 import { createUser } from '../api'
+
+// Named motion component (makes ESLint happy with member-expression usage)
+const MotionDiv = motion.div
+const MotionP = motion.p
 
 export default function Login() {
   const navigate = useNavigate()
@@ -34,14 +39,11 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     setError(null)
-    // Google One Tap / OAuth requires a real GOOGLE_CLIENT_ID env variable.
-    // This button will be functional once VITE_GOOGLE_CLIENT_ID is set.
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
     if (!clientId) {
       setError('El inicio de sesión con Google no está configurado aún.')
       return
     }
-    // Load the Google Identity Services library dynamically
     window.google?.accounts.id.initialize({
       client_id: clientId,
       callback: async ({ credential }) => {
@@ -60,25 +62,57 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        <Link to="/" className="flex items-center justify-center gap-2 text-emerald-400 font-bold text-2xl mb-8">
-          <Building2 size={32} />
-          <span>Inmobiliaria Mónica</span>
-        </Link>
+    <div
+      className="min-h-screen flex items-center justify-center px-4 py-12 relative overflow-hidden"
+      style={{ background: 'var(--bg-primary)' }}
+    >
+      {/* Background glow */}
+      <div
+        className="absolute inset-0 opacity-20"
+        style={{ background: 'radial-gradient(ellipse 70% 60% at 50% 50%, rgba(0,120,212,0.4) 0%, transparent 70%)' }}
+      />
 
-        <div className="bg-slate-800 rounded-2xl p-8 shadow-2xl">
+      <MotionDiv
+        initial={{ opacity: 0, y: 30, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+        className="relative w-full max-w-sm"
+      >
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <Link to="/" className="inline-flex items-center gap-2.5 group">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0078d4] to-[#004880] flex items-center justify-center shadow-lg shadow-[#0078d4]/40">
+              <Building2 size={22} className="text-white" />
+            </div>
+            <span className="font-bold text-xl text-white group-hover:text-[#56a4ea] transition-colors">
+              Inmobiliaria <span className="text-[#0078d4]">Mónica</span>
+            </span>
+          </Link>
+        </div>
+
+        <div
+          className="rounded-2xl p-8 shadow-2xl"
+          style={{
+            background: 'rgba(13,33,55,0.85)',
+            border: '1px solid rgba(0,120,212,0.2)',
+            backdropFilter: 'blur(20px)',
+          }}
+        >
           {/* Mode tabs */}
-          <div className="flex rounded-xl bg-slate-900 p-1 mb-6">
+          <div
+            className="flex rounded-xl p-1 mb-6"
+            style={{ background: 'rgba(2,12,27,0.8)', border: '1px solid rgba(0,120,212,0.15)' }}
+          >
             {['login', 'register'].map((m) => (
               <button
                 key={m}
                 onClick={() => { setMode(m); setError(null) }}
-                className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
+                className="flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200"
+                style={
                   mode === m
-                    ? 'bg-emerald-600 text-white'
-                    : 'text-slate-400 hover:text-white'
-                }`}
+                    ? { background: 'linear-gradient(135deg, #0078d4, #004880)', color: '#fff', boxShadow: '0 4px 12px rgba(0,120,212,0.35)' }
+                    : { color: '#4a6480' }
+                }
               >
                 {m === 'login' ? 'Iniciar sesión' : 'Registrarse'}
               </button>
@@ -86,9 +120,14 @@ export default function Login() {
           </div>
 
           {error && (
-            <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/30 rounded-xl px-4 py-3 mb-4">
+            <MotionP
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-red-300 text-sm px-4 py-3 rounded-xl mb-4"
+              style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)' }}
+            >
               {error}
-            </p>
+            </MotionP>
           )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -108,7 +147,7 @@ export default function Login() {
 
             <label className="flex flex-col gap-1.5">
               <span className="text-slate-400 text-xs uppercase tracking-wide flex items-center gap-1">
-                <Mail size={12} /> Email
+                <Mail size={11} /> Email
               </span>
               <input
                 required
@@ -122,7 +161,7 @@ export default function Login() {
 
             <label className="flex flex-col gap-1.5">
               <span className="text-slate-400 text-xs uppercase tracking-wide flex items-center gap-1">
-                <Lock size={12} /> Contraseña
+                <Lock size={11} /> Contraseña
               </span>
               <input
                 required
@@ -138,33 +177,42 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="mt-2 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-colors"
+              className="mt-2 flex items-center justify-center gap-2 text-white font-semibold py-3 rounded-xl transition-all disabled:opacity-50 hover:scale-[1.02] active:scale-[0.98]"
+              style={{ background: 'linear-gradient(135deg, #0078d4, #004880)', boxShadow: '0 4px 20px rgba(0,120,212,0.4)' }}
             >
-              <LogIn size={18} />
+              <LogIn size={17} />
               {loading ? 'Cargando…' : mode === 'login' ? 'Entrar' : 'Crear cuenta'}
             </button>
           </form>
 
           <div className="flex items-center gap-3 my-4">
-            <div className="flex-1 h-px bg-slate-700" />
+            <div className="flex-1 h-px" style={{ background: 'rgba(0,120,212,0.2)' }} />
             <span className="text-slate-500 text-xs">o</span>
-            <div className="flex-1 h-px bg-slate-700" />
+            <div className="flex-1 h-px" style={{ background: 'rgba(0,120,212,0.2)' }} />
           </div>
 
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 border border-slate-600 hover:border-slate-400 text-slate-300 hover:text-white font-medium py-3 rounded-xl transition-colors disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 text-slate-300 hover:text-white font-medium py-3 rounded-xl transition-all disabled:opacity-50 hover:scale-[1.02] active:scale-[0.98]"
+            style={{ border: '1px solid rgba(0,120,212,0.25)', background: 'rgba(0,120,212,0.05)' }}
           >
-            <Chrome size={18} />
+            <Chrome size={17} />
             Continuar con Google
           </button>
         </div>
 
-        <p className="text-center text-slate-500 text-sm mt-6">
-          <Link to="/" className="text-emerald-400 hover:underline">← Volver al catálogo</Link>
+        <p className="text-center mt-6">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-sm transition-colors hover:text-[#56a4ea]"
+            style={{ color: '#4a6480' }}
+          >
+            <ArrowLeft size={14} /> Volver al catálogo
+          </Link>
         </p>
-      </div>
+      </MotionDiv>
     </div>
   )
 }
+

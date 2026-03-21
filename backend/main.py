@@ -17,7 +17,12 @@ from models import ADMIN_EMAILS
 
 logger = logging.getLogger(__name__)
 
-# Create all tables on startup
+# Create (or recreate) all tables on startup.
+# Set RECREATE_TABLES=true to drop and recreate every table — use this ONCE
+# when initialising a fresh database, then remove the variable to avoid
+# accidental data loss on subsequent restarts.
+if os.getenv("RECREATE_TABLES", "").lower() == "true":
+    models.Base.metadata.drop_all(bind=engine)
 models.Base.metadata.create_all(bind=engine)
 
 # ── JWT config ────────────────────────────────────────────────────────────────
