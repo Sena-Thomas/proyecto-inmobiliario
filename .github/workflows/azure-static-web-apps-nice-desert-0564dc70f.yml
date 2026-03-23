@@ -35,6 +35,9 @@ jobs:
         env:
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_FACEBOOK_URL: ${{ secrets.VITE_FACEBOOK_URL }}
+          VITE_INSTAGRAM_URL: ${{ secrets.VITE_INSTAGRAM_URL }}
+          VITE_MONICA_PHONE: ${{ secrets.VITE_MONICA_PHONE }}
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
